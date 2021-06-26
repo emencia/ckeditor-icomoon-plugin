@@ -38,6 +38,9 @@ Follow these steps:
    configuration (``config.js``): ::
 
     config.extraPlugins = 'ajax,xml,icomoon';
+#. Add the editor stylesheets for icon widgets layout: ::
+
+    contentsCss = '/css/ckeditor.css';
 #. Add and fill the required options to the configuration.
 
 
@@ -46,7 +49,7 @@ Options
 
 Icomoon plugin stylesheet (Required)
     An URL path to the CSS file for the plugin stylesheets. This is needed for
-    plugin layout and diplay icons in editor preview.
+    plugin form layout.
 
     The stylesheet is not part of plugin package since it relies on Icomoon
     icons which depends from your Icomoon project, there is no way to cover
@@ -65,3 +68,12 @@ Icomoon manifest path (Required)
     Sample: ::
 
         config.icomoon_manifest_path = '/static/icomoon/selection.json';
+
+
+Stylesheets
+***********
+
+There are two distinct stylesheets required for plugin and widget layout.
+However they are not shipped with plugin package since it relies on Icomoon
+icons which depends from your Icomoon project, there is no way to cover every
+project cases so it's your responsability to build it.

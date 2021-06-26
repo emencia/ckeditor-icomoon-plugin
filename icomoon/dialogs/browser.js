@@ -1,35 +1,10 @@
 /*
- * Icomoon browser dialog
+ * Functionnal methods
  */
 
 var IcomoonBrowserMethods = {
-//
-// Build icomoon browser items from manifest
-//
-    'build_items': function(manifest) {
-        var output = '',
-            prefix = manifest.preferences.fontPref.prefix;
-
-        console.log("IcomoonBrowserMethods.build_items");
-        console.log(manifest);
-        for (var i = 0; i < manifest.icons.length; i++) {
-            let item = manifest.icons[i],
-                name = item.properties.name,
-                code = item.properties.code,
-                class_name = name,
-                button = '<button data-icon-class="' + prefix+class_name + '" onclick="IcomoonBrowserMethods.select(this);return false;">' +
-                        '<i class="' + prefix+class_name + '"></i>' +
-                        '<span>' + name + '</span>' +
-                        '</button>';
-
-                output += button;
-        }
-
-        return output;
-    },
-
     //
-    // Clean browser from every selection by setting button attribute to false
+    // Clean icons browser from every selection
     //
     'reset': function() {
         console.log("IcomoonBrowserMethods.reset");
@@ -42,35 +17,60 @@ var IcomoonBrowserMethods = {
     },
 
     //
-    // Set button attribute to select an icon
+    // Set input selection value from selected item in icons browser
     //
     'select': function(el) {
         console.log("IcomoonBrowserMethods.select");
+        const current_dialog = CKEDITOR.dialog.getCurrent(),
+            input = current_dialog.getContentElement('tab-browser', 'browser-selection');
         // Ensure there will be only one selection
         IcomoonBrowserMethods.reset();
         // Set to true
         el.setAttribute('data-browser-selection', 'true');
+        input.setValue(el.getAttribute('data-icon-name'));
     },
 
     //
     // Get selected button if any
     //
-    'get_selection': function(el) {
-        console.log("IcomoonBrowserMethods.select");
-        const $selection = document.querySelector('#icomoon-browser button[data-browser-selection="true"]');
+    'get_button': function(name) {
+        console.log("IcomoonBrowserMethods.get_button");
+        const $selection = document.querySelector('#icomoon-browser button[data-icon-name="'+ name +'"]');
 
         return $selection;
+    },
+
+    //
+    // Build icomoon browser items from manifest
+    //
+    'build_items': function(manifest) {
+        var output = '',
+            prefix = manifest.preferences.fontPref.prefix;
+
+        console.log("IcomoonBrowserMethods.build_items");
+        console.log(manifest);
+        for (var i = 0; i < manifest.icons.length; i++) {
+            let item = manifest.icons[i],
+                name = item.properties.name,
+                code = item.properties.code,
+                class_name = name,
+                button = '<button data-icon-class="' + prefix+class_name + '"'
+                            + ' data-icon-name="' + class_name + '"'
+                            + ' onclick="IcomoonBrowserMethods.select(this);return false;">' +
+                        '<i class="' + prefix+class_name + '"></i>' +
+                        '<span>' + name + '</span>' +
+                        '</button>';
+
+                output += button;
+        }
+
+        return output;
     }
 };
 
 
 /*
  * Browser dialog definition
- *
- * NOTE: Icon choices could have been builded with dialog element type 'radio'
- * but instead is build as an HTML list of buttons, which are easier to build
- * and use. Finally, we have to use querySelector methods to reach the selected
- * choice.
  */
 CKEDITOR.dialog.add('icomoonBrowserDialog', function(editor) {
     return {
@@ -83,50 +83,50 @@ CKEDITOR.dialog.add('icomoonBrowserDialog', function(editor) {
         //
         contents: [
             {
-                id: 'tab-selection',
-                label: 'Selection',
+                id: 'tab-browser',
+                label: 'Icons',
                 elements: [
                     {
+                        id: 'browser-items',
                         type: 'html',
-                        html: '<h5>' + 'Select an icon to insert' + '</h5><hr>'
+                        html: '<div id="icomoon-browser">' + IcomoonBrowserMethods.build_items(editor.config.icomoon_manifest) + '</div>',
+
+                        // On dialog first load, set the click event on items
+                        onLoad: function( a ) {
+                            console.log("icomoonBrowserDialog:browser-selection.onLoad");
+                            console.log("this.id:", this.id);
+                        }
                     },
                     {
-                        type: 'html',
-                        html: '<div id="icomoon-browser">' + IcomoonBrowserMethods.build_items(editor.config.icomoon_manifest) + '</div>'
+                        id: 'browser-selection',
+                        type: 'text',
+                        label: 'Icon name',
+                        style: 'display:none',
+
+                        // Setup the input initial value from possible widget
+                        // object attribute, also setup selection state in
+                        // 'browser-items' since it depends from this field value
+                        setup: function(widget) {
+                            console.log("icomoonBrowserDialog:browser-selection.setup");
+                            IcomoonBrowserMethods.reset();
+
+                            if (widget.data.name) {
+                                this.setValue(widget.data.name);
+                                IcomoonBrowserMethods.select(
+                                    IcomoonBrowserMethods.get_button(widget.data.name)
+                                );
+                            }
+                        },
+
+                        // Set the value on widget object from possible input
+                        // choice
+                        commit: function(widget) {
+                            console.log("icomoonBrowserDialog:browser-selection.commit");
+                            widget.setData('name', this.getValue());
+                        }
                     }
                 ]
             }
-        ],
-
-        //
-        // Triggered event when dialog is displayed
-        //
-        onShow: function() {
-            console.log("icomoonBrowserDialog.onShow");
-        },
-
-        //
-        // Triggered event when dialog button "ok" is clicked
-        //
-        onOk: function() {
-            console.log("icomoonBrowserDialog.onOk");
-            const dialog = this,
-                $selection = IcomoonBrowserMethods.get_selection();
-
-            if ($selection) {
-                console.log("icomoonBrowserDialog.onOk insert selection");
-                // Build element to insert
-                var icon_marker = editor.document.createElement('span');
-                icon_marker.setAttribute(
-                    'class',
-                    $selection.getAttribute('data-icon-class')
-                );
-                icon_marker.setHtml('&nbsp;');
-
-                // Insert element
-                editor.insertElement(icon_marker);
-                console.log("icomoonBrowserDialog.onOk end");
-            }
-        }
-    };
+        ]
+    }
 });
